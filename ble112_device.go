@@ -47,7 +47,7 @@ var sttyCmdFormat = "-F %v 115200 raw -brkint -icrnl -imaxbel -opost -isig -ican
 
 // NewBLE112Device creates and initializes a new BLE112Device
 // given a particular port
-func NewBLE112Device(port string) BLE112Device {
+func NewBLE112Device(port string) *BLE112Device {
 
 	if runtime.GOOS == "linux" {
 		err := exec.Command("stty", fmt.Sprintf(sttyCmdFormat, port)).Run()
@@ -67,7 +67,7 @@ func NewBLE112Device(port string) BLE112Device {
 	device.Open()
 	device.MacAddress = device.GetAddress()
 	device.Close()
-	return device
+	return &device
 }
 
 // Open opens the serial port connection to the BLE112
@@ -214,8 +214,8 @@ func ble112DevicePaths() ([]string, error) {
 }
 
 // BLE112Devices finds all the BLE112 devices that are currently on the system.
-func BLE112Devices() []BLE112Device {
-	var devices []BLE112Device
+func BLE112Devices() []*BLE112Device {
+	var devices []*BLE112Device
 	paths, err := ble112DevicePaths()
 	check(err)
 	for _, port := range paths {
