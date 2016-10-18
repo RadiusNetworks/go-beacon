@@ -7,7 +7,7 @@
 package main
 
 import (
-	"fmt"
+  "fmt"
   "github.com/RadiusNetworks/go-beacon"
   "time"
 )
