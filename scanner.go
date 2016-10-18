@@ -2,25 +2,25 @@ package beacon
 
 import (
 	"fmt"
-	"time"
 	"sync"
+	"time"
 )
 
 // a Scanner scans for beacons with a given ble interface (i.e., BlueZ, BLE112, CoreBluetooth)
 type Scanner struct {
-	device ScanDevice
-	parsers []*Parser
+	device        ScanDevice
+	parsers       []*Parser
 	beaconChannel chan BeaconSlice
-	done chan bool
-	beacons BeaconSlice
+	done          chan bool
+	beacons       BeaconSlice
 }
 
 // a ScanData represents a possible beacon advertisement that can be parsed into a beacon
 type ScanData struct {
-	Bytes []byte
+	Bytes  []byte
 	Device string
-	RSSI int8
-	Raw *[]byte
+	RSSI   int8
+	Raw    *[]byte
 }
 
 // A ScanDevice will return ScanData on a channel.  Currently the only implementation is
@@ -49,20 +49,22 @@ func (s *Scanner) Scan(cycleTime time.Duration, output chan BeaconSlice, done ch
 	go func() {
 		timer := time.NewTimer(cycleTime)
 		s.beacons = s.beacons[:0] // clear beacons slice
-		loop:
-			for {
-				select {
-				case scan, more := <- data:
-					if !more { break loop }
-					s.processScan(scan)
-				case <- done:
-					doneOut <- true
-				case <- timer.C:
-					output <- s.beacons
-					s.beacons = s.beacons[:0] // clear beacons slice
-					timer = time.NewTimer(cycleTime)
+	loop:
+		for {
+			select {
+			case scan, more := <-data:
+				if !more {
+					break loop
 				}
+				s.processScan(scan)
+			case <-done:
+				doneOut <- true
+			case <-timer.C:
+				output <- s.beacons
+				s.beacons = s.beacons[:0] // clear beacons slice
+				timer = time.NewTimer(cycleTime)
 			}
+		}
 		fmt.Printf("boom\n")
 		timer.Stop()
 		wg.Done()
@@ -73,7 +75,9 @@ func (s *Scanner) Scan(cycleTime time.Duration, output chan BeaconSlice, done ch
 
 func (s *Scanner) processScan(scan ScanData) {
 	beacon := Parse(scan.Bytes, s.parsers)
-	if beacon == nil { return }
+	if beacon == nil {
+		return
+	}
 	beacon.Device = scan.Device
 	found := s.beacons.Find(beacon)
 	if found != nil {

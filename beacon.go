@@ -4,13 +4,13 @@ package beacon
 
 import (
 	"fmt"
-	"strings"
 	"reflect"
+	"strings"
 )
 
 // A Beacon represents a BLE beacon and is made up of IDs and various data.
 type Beacon struct {
-	Type  string
+	Type   string
 	Ids    []Field
 	Data   []Field
 	Power  Field
@@ -44,10 +44,10 @@ func (b *Beacon) String() string {
 
 func (b *Beacon) RSSI() float64 {
 	total := 0.0
-	for _,rssi := range b.rssis {
+	for _, rssi := range b.rssis {
 		total += float64(rssi)
 	}
-	return total / float64( len(b.rssis) )
+	return total / float64(len(b.rssis))
 }
 
 func (b *Beacon) AddRSSI(rssi int8) {
@@ -59,8 +59,10 @@ func (a *Beacon) Equal(b *Beacon) bool {
 }
 
 func (beacons BeaconSlice) Find(b *Beacon) *Beacon {
-	for _,item := range beacons {
-		if b.Equal(item) { return item }
+	for _, item := range beacons {
+		if b.Equal(item) {
+			return item
+		}
 	}
 	return nil
 }

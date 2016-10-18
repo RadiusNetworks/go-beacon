@@ -6,11 +6,11 @@ import "strconv"
 import "bytes"
 
 var defaultLayouts = map[string]string{
-	"altbeacon": "m:2-3=beac,i:4-19,i:20-21,i:22-23,p:24-24,d:25-25",
+	"altbeacon":     "m:2-3=beac,i:4-19,i:20-21,i:22-23,p:24-24,d:25-25",
 	"eddystone_uid": "s:0-1=feaa,m:2-2=00,p:3-3:-41,i:4-13,i:14-19,d:20-21",
-  "eddystone_url": "s:0-1=feaa,m:2-2=10,p:3-3:-41,i:4-21v",
-  "eddystone_tlm": "s:0-1=feaa,m:2-2=20,d:3-3,d:4-5,d:6-7,d:8-11,d:12-15",
-  "eddystone_eid": "s:0-1=feaa,m:2-2=30,p:3-3:-41,i:4-11",
+	"eddystone_url": "s:0-1=feaa,m:2-2=10,p:3-3:-41,i:4-21v",
+	"eddystone_tlm": "s:0-1=feaa,m:2-2=20,d:3-3,d:4-5,d:6-7,d:8-11,d:12-15",
+	"eddystone_eid": "s:0-1=feaa,m:2-2=30,p:3-3:-41,i:4-11",
 }
 
 // DefaultParsers returns a list of beacon parsers defined by default.
@@ -102,7 +102,7 @@ func (p *Parser) ParseIds(data []byte) []Field {
 		if params.varLength {
 			id = data[params.start:]
 		} else {
-			id = data[params.start:params.end+1]
+			id = data[params.start : params.end+1]
 		}
 		ids = append(ids, id)
 	}
@@ -125,7 +125,9 @@ func (p *Parser) Parse(data []byte) *Beacon {
 func Parse(data []byte, parsers []*Parser) *Beacon {
 	for _, parser := range parsers {
 		beacon := parser.Parse(data)
-		if beacon != nil { return beacon }
+		if beacon != nil {
+			return beacon
+		}
 	}
 	return nil
 }
