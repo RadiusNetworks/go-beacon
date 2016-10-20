@@ -11,8 +11,8 @@ import (
 // A Beacon represents a BLE beacon and is made up of IDs and various data.
 type Beacon struct {
 	Type   string
-	Ids    []Field
-	Data   []Field
+	Ids    Fields
+	Data   Fields
 	Power  Field
 	rssis  []int8
 	Device string
