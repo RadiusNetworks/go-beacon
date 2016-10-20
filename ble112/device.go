@@ -1,9 +1,10 @@
-package beacon
+package ble112
 
 import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/RadiusNetworks/go-beacon"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,9 +13,9 @@ import (
 
 // A BLE112Device represents a USB connected BLE112 which can be used for
 // BLE scanning or advertising.
-type BLE112Device struct {
+type Device struct {
 	Port       string
-	MacAddress *MacAddress
+	MacAddress *beacon.MacAddress
 	f          *os.File
 }
 
@@ -45,9 +46,9 @@ var NULL_DATA = make([]byte, 0)
 
 var sttyCmdFormat = "-F %v 115200 raw -brkint -icrnl -imaxbel -opost -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke"
 
-// NewBLE112Device creates and initializes a new BLE112Device
+// NewDevice creates and initializes a new BLE112Device
 // given a particular port
-func NewBLE112Device(port string) *BLE112Device {
+func NewDevice(port string) *Device {
 
 	if runtime.GOOS == "linux" {
 		err := exec.Command("stty", fmt.Sprintf(sttyCmdFormat, port)).Run()
@@ -56,7 +57,7 @@ func NewBLE112Device(port string) *BLE112Device {
 		}
 	}
 
-	var device BLE112Device
+	var device Device
 	device.Port = port
 
 	// stop scanning, clear buffer
@@ -71,18 +72,18 @@ func NewBLE112Device(port string) *BLE112Device {
 }
 
 // Open opens the serial port connection to the BLE112
-func (device *BLE112Device) Open() {
+func (device *Device) Open() {
 	device.f, _ = os.OpenFile(device.Port, os.O_RDWR, os.ModeDevice)
 }
 
 // Close closes the serial port connection
-func (device *BLE112Device) Close() {
+func (device *Device) Close() {
 	device.f.Close()
 	device.f = nil
 }
 
 // SendCommand sends a command to a BLE112
-func (device *BLE112Device) SendCommand(msgClass byte, msg byte, data []byte) (*BLE112Response, error) {
+func (device *Device) SendCommand(msgClass byte, msg byte, data []byte) (*Response, error) {
 	dataSize := byte(len(data))
 	cmd := []byte{BG_COMMAND, dataSize, msgClass, msg}
 	cmd = append(cmd, data...)
@@ -92,8 +93,8 @@ func (device *BLE112Device) SendCommand(msgClass byte, msg byte, data []byte) (*
 }
 
 // GetAddress retrieves the BLE112's mac address.
-func (device *BLE112Device) GetAddress() *MacAddress {
-	var r *BLE112Response
+func (device *Device) GetAddress() *beacon.MacAddress {
+	var r *Response
 	var err error
 	retries := 4
 	for err == nil && retries >= 0 {
@@ -109,14 +110,14 @@ func (device *BLE112Device) GetAddress() *MacAddress {
 	if err != nil || len(r.Data) < 10 {
 		return nil
 	} else {
-		var macAddress MacAddress
+		var macAddress beacon.MacAddress
 		copy(macAddress[:], r.Data[4:10])
 		return &macAddress
 	}
 }
 
 // StartScan tells the BLE112 to start scanning.
-func (device *BLE112Device) StartScan() {
+func (device *Device) StartScan() {
 	device.SendCommand(BG_MSG_CLASS_CONNECTION, BG_DISCONNECT, NULL_DATA)
 	device.SendCommand(BG_MSG_CLASS_GAP, BG_SET_MODE, []byte{BG_GAP_NON_DISCOVERABLE, BG_GAP_NON_CONNECTABLE})
 	device.SendCommand(BG_MSG_CLASS_GAP, BG_DISCOVER_STOP, NULL_DATA)
@@ -126,17 +127,17 @@ func (device *BLE112Device) StartScan() {
 }
 
 // StopScan tells the BLE112 to stop scanning.
-func (device *BLE112Device) StopScan() {
+func (device *Device) StopScan() {
 	device.f.Write([]byte{BG_COMMAND, 0, BG_MSG_CLASS_GAP, BG_DISCOVER_STOP})
 }
 
 // Scan uses the BLE112 device to scan for advertisements. It appends scans to
 // the data channel, and exits when it recieves something on the done channel.
-func (device *BLE112Device) Scan(data chan ScanData, done chan bool) {
+func (device *Device) Scan(data chan beacon.ScanData, done chan bool) {
 	device.Open()
 	device.StartScan()
 
-	readChan := make(chan *BLE112Response, 2)
+	readChan := make(chan *Response, 2)
 	shouldStop := false
 	go func() {
 		for !shouldStop {
@@ -157,9 +158,9 @@ loop:
 			}
 			if r.IsAdvertisement() {
 				if r.IsMfgAd() {
-					data <- ScanData{r.Data[20:], r.MacAddress().String(), r.RSSI(), &r.Data}
+					data <- beacon.ScanData{r.Data[20:], r.MacAddress().String(), r.RSSI(), &r.Data}
 				} else {
-					data <- ScanData{r.Data[24:], r.MacAddress().String(), r.RSSI(), &r.Data}
+					data <- beacon.ScanData{r.Data[24:], r.MacAddress().String(), r.RSSI(), &r.Data}
 				}
 			}
 		case <-done:
@@ -172,7 +173,7 @@ loop:
 }
 
 // Read from the BLE112 device
-func (device *BLE112Device) Read() (*BLE112Response, error) {
+func (device *Device) Read() (*Response, error) {
 	var err error
 	var byteCount int
 	var output []byte
@@ -198,14 +199,12 @@ func (device *BLE112Device) Read() (*BLE112Response, error) {
 		bytesLeft -= byteCount
 	}
 
-	var r BLE112Response
-	r.Data = output
-	return &r, err
+	return &Response{output}, err
 }
 
-// ble112DevicePaths returns a list of paths that correspond with possible
+// devicePaths returns a list of paths that correspond with possible
 // BL112 devices.
-func ble112DevicePaths() ([]string, error) {
+func devicePaths() ([]string, error) {
 	paths, err := filepath.Glob("/dev/ttyACM*")
 	if len(paths) == 0 {
 		paths, err = filepath.Glob("/dev/cu.usbmodem*")
@@ -213,13 +212,13 @@ func ble112DevicePaths() ([]string, error) {
 	return paths, err
 }
 
-// BLE112Devices finds all the BLE112 devices that are currently on the system.
-func BLE112Devices() []*BLE112Device {
-	var devices []*BLE112Device
-	paths, err := ble112DevicePaths()
+// Devices finds all the BLE112 devices that are currently on the system.
+func Devices() []*Device {
+	var devices []*Device
+	paths, err := devicePaths()
 	check(err)
 	for _, port := range paths {
-		var device = NewBLE112Device(port)
+		var device = NewDevice(port)
 		if device.MacAddress != nil {
 			devices = append(devices, device)
 		}
