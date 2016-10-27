@@ -204,7 +204,7 @@ func (device *Device) Read() (*Response, error) {
 
 // devicePaths returns a list of paths that correspond with possible
 // BL112 devices.
-func devicePaths() ([]string, error) {
+func DevicePaths() ([]string, error) {
 	paths, err := filepath.Glob("/dev/ttyACM*")
 	if len(paths) == 0 {
 		paths, err = filepath.Glob("/dev/cu.usbmodem*")
@@ -215,7 +215,7 @@ func devicePaths() ([]string, error) {
 // Devices finds all the BLE112 devices that are currently on the system.
 func Devices() []*Device {
 	var devices []*Device
-	paths, err := devicePaths()
+	paths, err := DevicePaths()
 	check(err)
 	for _, port := range paths {
 		var device = NewDevice(port)

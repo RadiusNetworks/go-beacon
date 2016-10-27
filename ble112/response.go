@@ -31,6 +31,16 @@ func (r *Response) IsAdvertisement() bool {
 	return len(r.Data) > 20 && r.IsEvent() && r.IsGapScan() && (r.IsMfgAd() || r.IsServiceAd())
 }
 
+func (r *Response) AdData() []byte {
+	if r.IsMfgAd() {
+		return r.Data[20:]
+	} else if r.IsServiceAd() {
+		return r.Data[24:]
+	} else {
+		return []byte{}
+	}
+}
+
 func (r *Response) MacAddress() *beacon.MacAddress {
 	var a beacon.MacAddress
 	copy(a[:], r.Data[6:12])

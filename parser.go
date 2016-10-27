@@ -96,17 +96,39 @@ func (p *Parser) Matches(data []byte) bool {
 // ParseIds parses a beacon's IDs out of advertisement data, according
 // to the layout.
 func (p *Parser) ParseIds(data []byte) []Field {
-	var ids []Field
-	for _, params := range p.idFields {
+	var ids = make([]Field, len(p.idFields))
+	for i, params := range p.idFields {
 		var id []byte
 		if params.varLength {
 			id = data[params.start:]
 		} else {
 			id = data[params.start : params.end+1]
 		}
-		ids = append(ids, id)
+		ids[i] = id
 	}
 	return ids
+}
+
+// ParseData parses a beacon's data fields out of advertisement data, according
+// to the layout.
+func (p *Parser) ParseData(data []byte) []Field {
+	var fields = make([]Field, len(p.dataFields))
+	for i, params := range p.dataFields {
+		var field []byte
+		if params.varLength {
+			field = data[params.start:]
+		} else {
+			field = data[params.start : params.end+1]
+		}
+		fields[i] = field
+	}
+	return fields
+}
+
+// ParsePower parses a beacon's measured power field out of advertisement data, according
+// to the layout.
+func (p *Parser) ParsePower(data []byte) Field {
+	return data[p.powerField.start : p.powerField.end+1]
 }
 
 // Parse parses advertisement data. It returns an instance of Beacon if it
@@ -116,7 +138,9 @@ func (p *Parser) Parse(data []byte) *Beacon {
 		return nil
 	}
 	ids := p.ParseIds(data)
-	beacon := NewBeacon(p.Name, ids, []Field{}, Field{0xbf})
+	dataFields := p.ParseData(data)
+	measuredPower := p.ParsePower(data)
+	beacon := NewBeacon(p.Name, ids, dataFields, measuredPower)
 	return &beacon
 }
 
