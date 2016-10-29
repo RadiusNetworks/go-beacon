@@ -17,7 +17,7 @@ import (
 func main() {
   device := ble112.Devices()[0]
   scanner := beacon.NewScanner(device, beacon.DefaultParsers())
-  data := make(chan beacon.BeaconSlice)
+  data := make(chan beacon.Slice)
   done := make(chan bool)
   go scanner.Scan(time.Second, data, done)
 
