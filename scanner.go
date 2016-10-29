@@ -6,16 +6,16 @@ import (
 	"time"
 )
 
-// a Scanner scans for beacons with a given ble interface (i.e., BlueZ, BLE112, CoreBluetooth)
+// Scanner scans for beacons with a given ble interface (i.e., BlueZ, BLE112, CoreBluetooth)
 type Scanner struct {
 	device        ScanDevice
 	parsers       []*Parser
-	beaconChannel chan BeaconSlice
+	beaconChannel chan Slice
 	done          chan bool
-	beacons       BeaconSlice
+	beacons       Slice
 }
 
-// a ScanData represents a possible beacon advertisement that can be parsed into a beacon
+// ScanData represents a possible beacon advertisement that can be parsed into a beacon
 type ScanData struct {
 	Bytes  []byte
 	Device string
@@ -40,7 +40,7 @@ func NewScanner(d ScanDevice, p []*Parser) *Scanner {
 
 // Scan will scan for beacons and return a list of beacons that it detects on the interval
 // given in cycleTime. It will stop scanning when it receives something on the done channel.
-func (s *Scanner) Scan(cycleTime time.Duration, output chan BeaconSlice, done chan bool) {
+func (s *Scanner) Scan(cycleTime time.Duration, output chan Slice, done chan bool) {
 	data := make(chan ScanData)
 	doneOut := make(chan bool)
 

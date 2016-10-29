@@ -18,6 +18,8 @@ func (addr *MacAddress) String() string {
 	)
 }
 
+// ParseMacAddress parses a MacAddress struct from a string with the
+// format "00:11:22:33:44:55"
 func ParseMacAddress(s string) MacAddress {
 	bytes, _ := hex.DecodeString(strings.Replace(s, ":", "", -1))
 	return MacAddress{bytes[5], bytes[4], bytes[3], bytes[2], bytes[1], bytes[0]}

@@ -11,7 +11,7 @@ import (
 	"runtime"
 )
 
-// A BLE112Device represents a USB connected BLE112 which can be used for
+// Device represents a USB connected BLE112 which can be used for
 // BLE scanning or advertising.
 type Device struct {
 	Port       string
@@ -109,11 +109,10 @@ func (device *Device) GetAddress() *beacon.MacAddress {
 
 	if err != nil || len(r.Data) < 10 {
 		return nil
-	} else {
-		var macAddress beacon.MacAddress
-		copy(macAddress[:], r.Data[4:10])
-		return &macAddress
 	}
+	var macAddress beacon.MacAddress
+	copy(macAddress[:], r.Data[4:10])
+	return &macAddress
 }
 
 // StartScan tells the BLE112 to start scanning.
@@ -202,7 +201,7 @@ func (device *Device) Read() (*Response, error) {
 	return &Response{output}, err
 }
 
-// devicePaths returns a list of paths that correspond with possible
+// DevicePaths returns a list of paths that correspond with possible
 // BL112 devices.
 func DevicePaths() ([]string, error) {
 	paths, err := filepath.Glob("/dev/ttyACM*")
