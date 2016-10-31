@@ -16,8 +16,8 @@ type Field []byte
 type Fields []Field
 
 // String converts a beacon Field into a human readable format.
-func (f *Field) String() string {
-	switch len(*f) {
+func (f Field) String() string {
+	switch len(f) {
 	case 1:
 		return strconv.Itoa(int(f.Int8()))
 	case 2:
