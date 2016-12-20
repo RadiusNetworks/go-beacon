@@ -5,10 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/RadiusNetworks/go-beacon"
-	"os"
-	"os/exec"
+	"github.com/RadiusNetworks/go-beacon/advertiser"
+	"github.com/tarm/serial"
 	"path/filepath"
 	"runtime"
+	"time"
 )
 
 // Device represents a USB connected BLE112 which can be used for
@@ -16,7 +17,7 @@ import (
 type Device struct {
 	Port       string
 	MacAddress *beacon.MacAddress
-	f          *os.File
+	f          *serial.Port
 }
 
 func check(e error) {
@@ -38,42 +39,45 @@ const (
 	BG_SCAN_PARAMS          = byte(7)
 	BG_GAP_NON_DISCOVERABLE = byte(0)
 	BG_GAP_NON_CONNECTABLE  = byte(0)
+	BG_GAP_CONNECTABLE      = byte(2)
 	BG_GAP_DISCOVER_ALL     = byte(2)
+	BG_GAP_USER_DATA        = byte(4)
+	BG_GAP_SET_ADV_PARAM    = byte(8)
+	BG_GAP_SET_ADV_DATA     = byte(9)
 	BG_EVENT                = byte(0x80)
 )
 
 var NULL_DATA = make([]byte, 0)
 
-var sttyCmdFormat = "-F %v 115200 raw -brkint -icrnl -imaxbel -opost -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke"
-
 // NewDevice creates and initializes a new BLE112Device
 // given a particular port
-func NewDevice(port string) *Device {
-
-	if runtime.GOOS == "linux" {
-		err := exec.Command("stty", fmt.Sprintf(sttyCmdFormat, port)).Run()
-		if err != nil {
-			fmt.Printf("Error: %v\n", err)
-		}
-	}
-
+func NewDevice(port string) (*Device, error) {
 	var device Device
 	device.Port = port
 
 	// stop scanning, clear buffer
-	device.Open()
+	if err := device.Open(); err != nil {
+		return nil, err
+	}
 	device.StopScan()
 	device.Close()
 
 	device.Open()
 	device.MacAddress = device.GetAddress()
 	device.Close()
-	return &device
+
+	if !bytes.Equal(device.MacAddress[3:], []byte{0x80, 0x07, 0x00}) {
+		return nil, errors.New("Non-BLE112 MAC address detected")
+	}
+	return &device, nil
 }
 
 // Open opens the serial port connection to the BLE112
-func (device *Device) Open() {
-	device.f, _ = os.OpenFile(device.Port, os.O_RDWR, os.ModeDevice)
+func (device *Device) Open() error {
+	var err error
+	c := serial.Config{Name: device.Port, Baud: 115200, ReadTimeout: time.Millisecond * 250}
+	device.f, err = serial.OpenPort(&c)
+	return err
 }
 
 // Close closes the serial port connection
@@ -101,6 +105,10 @@ func (device *Device) GetAddress() *beacon.MacAddress {
 		// sometimes it doesn't respond and we have to ask it again
 		// not sure why.
 		r, err = device.SendCommand(BG_MSG_CLASS_SYSTEM, BG_GET_ADDRESS, NULL_DATA)
+		if err != nil {
+			fmt.Printf("Error accessing %v\n", device.Port)
+			panic(err)
+		}
 		retries--
 		if len(r.Data) >= 10 && bytes.Equal(r.Data[0:4], []byte{0, 6, 0, 2}) {
 			break
@@ -113,6 +121,43 @@ func (device *Device) GetAddress() *beacon.MacAddress {
 	var macAddress beacon.MacAddress
 	copy(macAddress[:], r.Data[4:10])
 	return &macAddress
+}
+
+func (device *Device) StartAdvertising(data []byte) {
+	device.SendCommand(BG_MSG_CLASS_CONNECTION, BG_DISCONNECT, NULL_DATA)
+	device.SendCommand(BG_MSG_CLASS_GAP, BG_SET_MODE, []byte{BG_GAP_NON_DISCOVERABLE, BG_GAP_NON_CONNECTABLE})
+	device.SendCommand(BG_MSG_CLASS_GAP, BG_GAP_SET_ADV_PARAM, []byte{0xA0, 0x00, 0xA0, 0x00, 0x07})
+	b := append([]byte{0x00, byte(len(data) + 3), 0x02, 0x01, 0x06}, data...)
+	device.SendCommand(BG_MSG_CLASS_GAP, BG_GAP_SET_ADV_DATA, b)
+	device.SendCommand(BG_MSG_CLASS_GAP, BG_SET_MODE, []byte{BG_GAP_USER_DATA, BG_GAP_CONNECTABLE})
+}
+
+// advertiser.Advertiser interface
+
+// AdvertiseMfgData advertises manufacturer data using the given mfg id
+func (device *Device) AdvertiseMfgData(id uint16, ad advertiser.Advertisement) {
+	device.Open()
+	header := []byte{uint8(len(ad) + 1), 0xff, uint8(id), uint8(id >> 8)}
+	device.StartAdvertising(append(header, ad[2:]...))
+	device.Close()
+}
+
+// AdvertiseServiceData advertises the given service data with the given service uuid
+func (device *Device) AdvertiseServiceData(id uint16, ad advertiser.Advertisement) {
+	device.Open()
+	header := []byte{
+		0x03, 0x03, uint8(id), uint8(id >> 8),
+		uint8(len(ad) + 1), 0x16, uint8(id), uint8(id >> 8),
+	}
+	device.StartAdvertising(append(header, ad[2:]...))
+	device.Close()
+}
+
+// StopAdvertising stops advertising data
+func (device *Device) StopAdvertising() {
+	device.Open()
+	device.SendCommand(BG_MSG_CLASS_GAP, BG_SET_MODE, []byte{BG_GAP_NON_DISCOVERABLE, BG_GAP_NON_CONNECTABLE})
+	device.Close()
 }
 
 // StartScan tells the BLE112 to start scanning.
@@ -178,7 +223,7 @@ func (device *Device) Read() (*Response, error) {
 	var output []byte
 
 	if device.f == nil {
-		return nil, errors.New("Device alerady closed!")
+		return nil, errors.New("Device already closed!")
 	}
 	header := make([]byte, 4)
 	byteCount, err = device.f.Read(header)
@@ -204,6 +249,10 @@ func (device *Device) Read() (*Response, error) {
 // DevicePaths returns a list of paths that correspond with possible
 // BL112 devices.
 func DevicePaths() ([]string, error) {
+	if runtime.GOOS == "windows" {
+		return []string{"COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9"}, nil
+	}
+
 	paths, err := filepath.Glob("/dev/ttyACM*")
 	if len(paths) == 0 {
 		paths, err = filepath.Glob("/dev/cu.usbmodem*")
@@ -217,8 +266,8 @@ func Devices() []*Device {
 	paths, err := DevicePaths()
 	check(err)
 	for _, port := range paths {
-		var device = NewDevice(port)
-		if device.MacAddress != nil {
+		var device, _ = NewDevice(port)
+		if device != nil && device.MacAddress != nil {
 			devices = append(devices, device)
 		}
 	}
