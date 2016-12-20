@@ -3,7 +3,6 @@ package ble112
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"github.com/RadiusNetworks/go-beacon"
 	"github.com/RadiusNetworks/go-beacon/advertiser"
 	"github.com/tarm/serial"
@@ -66,7 +65,7 @@ func NewDevice(port string) (*Device, error) {
 	device.MacAddress = device.GetAddress()
 	device.Close()
 
-	if !bytes.Equal(device.MacAddress[3:], []byte{0x80, 0x07, 0x00}) {
+	if device.MacAddress == nil || !bytes.Equal(device.MacAddress[3:], []byte{0x80, 0x07, 0x00}) {
 		return nil, errors.New("Non-BLE112 MAC address detected")
 	}
 	return &device, nil
@@ -106,8 +105,7 @@ func (device *Device) GetAddress() *beacon.MacAddress {
 		// not sure why.
 		r, err = device.SendCommand(BG_MSG_CLASS_SYSTEM, BG_GET_ADDRESS, NULL_DATA)
 		if err != nil {
-			fmt.Printf("Error accessing %v\n", device.Port)
-			panic(err)
+			return nil
 		}
 		retries--
 		if len(r.Data) >= 10 && bytes.Equal(r.Data[0:4], []byte{0, 6, 0, 2}) {
