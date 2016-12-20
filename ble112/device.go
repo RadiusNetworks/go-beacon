@@ -8,7 +8,6 @@ import (
 	"github.com/tarm/serial"
 	"path/filepath"
 	"runtime"
-	"time"
 )
 
 // Device represents a USB connected BLE112 which can be used for
@@ -74,7 +73,7 @@ func NewDevice(port string) (*Device, error) {
 // Open opens the serial port connection to the BLE112
 func (device *Device) Open() error {
 	var err error
-	c := serial.Config{Name: device.Port, Baud: 115200, ReadTimeout: time.Millisecond * 250}
+	c := serial.Config{Name: device.Port, Baud: 115200}
 	device.f, err = serial.OpenPort(&c)
 	return err
 }
