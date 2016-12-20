@@ -97,6 +97,23 @@ func (a Fields) Equal(b Fields) bool {
 	return true
 }
 
+// UUIDMajorMinorFields returns Fields suitable for an altBeacon or iBeacon
+func UUIDMajorMinorFields(uuid string, major uint16, minor uint16) Fields {
+	return Fields{
+		FieldFromHex(uuid),
+		FieldFromUint16(major),
+		FieldFromUint16(minor),
+	}
+}
+
+// EddystoneUIDFields returns Fields suitable for an Eddystone UID beacon
+func EddystoneUIDFields(namespace, instance string) Fields {
+	return Fields{
+		FieldFromHex(namespace),
+		FieldFromHex(instance),
+	}
+}
+
 // Hex returns hex strings for each Field separated by a space
 func (f *Fields) Hex() string {
 	strFields := make([]string, len(*f))
