@@ -4,6 +4,7 @@ import "strings"
 import "encoding/hex"
 import "strconv"
 import "bytes"
+import "github.com/RadiusNetworks/go-beacon/advertiser"
 
 var defaultLayouts = map[string]string{
 	"altbeacon":     "m:2-3=beac,i:4-19,i:20-21,i:22-23,p:24-24,d:25-25",
@@ -142,6 +143,32 @@ func (p *Parser) Parse(data []byte) *Beacon {
 	measuredPower := p.ParsePower(data)
 	beacon := NewBeacon(p.Name, ids, dataFields, measuredPower)
 	return &beacon
+}
+
+// GenerateAd generates the bytes of a beacon advertisement with the
+// given beacon.
+func (p *Parser) GenerateAd(b *Beacon) advertiser.Advertisement {
+	insertField := func(ad *[]byte, p fieldParams, field Field) {
+		l := len(field)
+		end := p.start + l
+		if len(*ad) < end {
+			*ad = (*ad)[:end]
+		}
+		copy((*ad)[p.start:p.start+l], field)
+	}
+
+	ad := make([]byte, 0, 32)
+	for idx, field := range p.idFields {
+		insertField(&ad, field, b.Ids[idx])
+	}
+	for idx, field := range p.dataFields {
+		insertField(&ad, field, b.Data[idx])
+	}
+	insertField(&ad, p.powerField, b.Power)
+	for _, field := range p.matchers {
+		insertField(&ad, field, field.expected)
+	}
+	return ad
 }
 
 // Parse attempts to parse a Beacon from advertisement data, given a list
