@@ -1,6 +1,7 @@
 package beacon
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 )
@@ -46,5 +47,39 @@ func TestMacAddress(t *testing.T) {
 	got := ma.String()
 	if got != expected {
 		t.Errorf("got %v; expected %v", got, expected)
+	}
+}
+
+func TestCompressEddystoneURL(t *testing.T) {
+	cases := map[string]string{
+		"https://radiusnetworks.com": "037261646975736e6574776f726b7307",
+		"https://www.google.com":     "01676f6f676c6507",
+	}
+
+	for url, expectedHex := range cases {
+		f, err := CompressEddystoneURL(url)
+		expected := FieldFromHex(expectedHex)
+		if err != nil {
+			t.Errorf("URL \"%v\" should compress, but got error: %v", url, err)
+		}
+		if !bytes.Equal(f, expected) {
+			t.Errorf("got %v; expected %v", f, expected)
+		}
+
+		decompressed := expected.DecompressEddystoneURL()
+		if decompressed != url {
+			t.Errorf("got %v; expected %v", decompressed, url)
+		}
+	}
+
+	failCases := []string{
+		"https://example.com/long___url",
+		"invalid://foo.com",
+	}
+	for _, url := range failCases {
+		_, err := CompressEddystoneURL(url)
+		if err == nil {
+			t.Errorf("URL \"%v\" should not compress!", url)
+		}
 	}
 }
