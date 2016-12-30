@@ -6,7 +6,7 @@ import "strconv"
 import "bytes"
 import "github.com/RadiusNetworks/go-beacon/advertiser"
 
-var defaultLayouts = map[string]string{
+var DefaultLayouts = map[string]string{
 	"altbeacon":     "m:2-3=beac,i:4-19,i:20-21,i:22-23,p:24-24,d:25-25",
 	"eddystone_uid": "s:0-1=feaa,m:2-2=00,p:3-3:-41,i:4-13,i:14-19,d:20-21",
 	"eddystone_url": "s:0-1=feaa,m:2-2=10,p:3-3:-41,i:4-21v",
@@ -16,9 +16,9 @@ var defaultLayouts = map[string]string{
 
 // DefaultParsers returns a list of beacon parsers defined by default.
 func DefaultParsers() []*Parser {
-	DefaultParser := make([]*Parser, len(defaultLayouts))
+	DefaultParser := make([]*Parser, len(DefaultLayouts))
 	i := 0
-	for name, layout := range defaultLayouts {
+	for name, layout := range DefaultLayouts {
 		DefaultParser[i] = NewParser(name, layout)
 		i++
 	}

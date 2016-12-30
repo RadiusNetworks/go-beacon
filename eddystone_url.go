@@ -36,6 +36,22 @@ var (
 	}
 )
 
+// NewEddystoneURLBeacon returns an Eddystone-URL beacon or an error if
+// the URL cannot be compressed.
+func NewEddystoneURLBeacon(url string, pwr int8) (*Beacon, error) {
+	beaconIds, err := EddystoneURLFields(url)
+	if err != nil {
+		return nil, err
+	}
+
+	beacon := NewBeacon("eddystone_url",
+		beaconIds,          // ids
+		Fields{},           // data
+		FieldFromInt8(pwr), // measured power
+	)
+	return &beacon, nil
+}
+
 // EddystoneURLFields returns a slice (length 1) with the compressed url
 func EddystoneURLFields(url string) (Fields, error) {
 	f, err := CompressEddystoneURL(url)
