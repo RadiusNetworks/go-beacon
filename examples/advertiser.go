@@ -1,7 +1,9 @@
 package main
 
 import (
-	"time"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/RadiusNetworks/go-beacon"
 	"github.com/RadiusNetworks/go-beacon/advertiser"
@@ -12,8 +14,9 @@ func main() {
 	eddystoneURLParser := beacon.NewParser("eddystone_url", beacon.DefaultLayouts["eddystone_url"])
 	advert := eddystoneURLParser.GenerateAd(urlBeacon)
 	adv, _ := advertiser.New()
-	for {
-		adv.AdvertiseMfgData(0xfeaa, advert)
-		time.Sleep(5 * time.Second)
-	}
+	adv.AdvertiseServiceData(0xfeaa, advert)
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT)
+	signal.Notify(sigChan, syscall.SIGTERM)
+	<-sigChan // wait for signal
 }
