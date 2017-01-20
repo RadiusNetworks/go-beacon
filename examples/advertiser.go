@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	urlBeacon, _ := beacon.NewEddystoneURLBeacon("https://radiusnetworks.com", -42)
+	urlBeacon, _ := beacon.NewEddystoneURLBeacon("https://www.radiusnetworks.com", -42)
 	eddystoneURLParser := beacon.NewParser("eddystone_url", beacon.DefaultLayouts["eddystone_url"])
 	advert := eddystoneURLParser.GenerateAd(urlBeacon)
 	adv, _ := advertiser.New()
