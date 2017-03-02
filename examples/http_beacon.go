@@ -10,7 +10,9 @@ import (
 	"github.com/RadiusNetworks/go-beacon/advertiser"
 )
 
-type Beacon struct {
+// BeaconSpecification contains beacon type and configuration for advertising.
+// Struct and fields must be exported for the json Decoder to work.
+type BeaconSpecification struct {
 	BeaconType  string
 	Identifiers struct {
 		UUID  string
@@ -26,7 +28,7 @@ func main() {
 
 func beaconHandler(response http.ResponseWriter, request *http.Request) {
 	decoder := json.NewDecoder(request.Body)
-	var beacon Beacon
+	var beacon BeaconSpecification
 	err := decoder.Decode(&beacon)
 	if err != nil {
 		panic(err)
@@ -35,7 +37,7 @@ func beaconHandler(response http.ResponseWriter, request *http.Request) {
 	advertiseBeacon(beacon)
 }
 
-func advertiseBeacon(advBeacon Beacon) {
+func advertiseBeacon(advBeacon BeaconSpecification) {
 	altBeaconParser := beacon.NewParser("altbeacon", beacon.DefaultLayouts["altbeacon"])
 	altBeacon := beacon.NewAltBeacon(advBeacon.Identifiers.UUID, advBeacon.Identifiers.Major, advBeacon.Identifiers.Minor, -42)
 	advert := altBeaconParser.GenerateAd(altBeacon)
