@@ -20,17 +20,6 @@ type Beacon struct {
 }
 
 func main() {
-	/*
-		urlBeacon, _ := beacon.NewEddystoneURLBeacon("https://www.radiusnetworks.com", -42)
-		eddystoneURLParser := beacon.NewParser("eddystone_url", beacon.DefaultLayouts["eddystone_url"])
-		advert := eddystoneURLParser.GenerateAd(urlBeacon)
-		adv, _ := advertiser.New()
-		adv.AdvertiseServiceData(0xfeaa, advert)
-		sigChan := make(chan os.Signal, 1)
-		signal.Notify(sigChan, syscall.SIGINT)
-		signal.Notify(sigChan, syscall.SIGTERM)
-		<-sigChan // wait for signal
-	*/
 	http.HandleFunc("/beacon", beaconHandler)
 	log.Fatal(http.ListenAndServe(":9999", nil))
 }
