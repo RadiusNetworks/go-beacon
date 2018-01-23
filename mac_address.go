@@ -18,6 +18,13 @@ func (addr MacAddress) String() string {
 	)
 }
 
+// MarshalJSON implements the json.Marshaler interface by returning the
+// mac address as a string.
+func (addr MacAddress) MarshalJSON() (text []byte, err error) {
+	str := fmt.Sprintf("\"%v\"", addr.String())
+	return []byte(str), nil
+}
+
 // ParseMacAddress parses a MacAddress struct from a string with the
 // format "00:11:22:33:44:55"
 func ParseMacAddress(s string) MacAddress {
