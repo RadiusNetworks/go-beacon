@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -37,6 +38,21 @@ func (f Field) MarshalJSON() (text []byte, err error) {
 	}
 	err = nil
 	return
+}
+
+// UnmarshalJSON unmarshals a json string into a Field. If the text starts with
+// a quote, it assumes it is a hex string. Otherwise it will unmarshal it as a
+// uint16 field, if it looks like an integer.
+func (f *Field) UnmarshalJSON(text []byte) error {
+	str := string(text)
+	if str[0] == '"' {
+		*f = FieldFromHex(str[1 : len(str)-1])
+	} else if i, err := strconv.Atoi(str); err == nil && strconv.Itoa(i) == str {
+		*f = FieldFromUint16(uint16(i))
+	} else {
+		return errors.New("Error unmarshaling text - invalid value")
+	}
+	return nil
 }
 
 // Int8 returns the field as an int8 value
