@@ -2,6 +2,7 @@ package beacon
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -23,6 +24,18 @@ func (addr MacAddress) String() string {
 func (addr MacAddress) MarshalJSON() (text []byte, err error) {
 	str := fmt.Sprintf("\"%v\"", addr.String())
 	return []byte(str), nil
+}
+
+// UnmarshalJSON implements the json.Unmarshaler inferface by parsing
+// the string representing the mac address.
+func (addr *MacAddress) UnmarshalJSON(text []byte) error {
+	str := string(text)
+	if len(str) == 19 && str[0] == '"' {
+		*addr = ParseMacAddress(string(text[1 : len(text)-1]))
+	} else {
+		return errors.New("\"%v\" is not a mac address")
+	}
+	return nil
 }
 
 // ParseMacAddress parses a MacAddress struct from a string with the
