@@ -17,10 +17,13 @@ type Scanner struct {
 
 // ScanData represents a possible beacon advertisement that can be parsed into a beacon
 type ScanData struct {
-	Bytes  []byte
-	Device string
-	RSSI   int8
-	Raw    *[]byte
+	Bytes       []byte
+	Device      string
+	AddressType uint8
+	AdvType     uint8
+	Channel     uint8
+	RSSI        int8
+	Raw         *[]byte
 }
 
 // A ScanDevice will return ScanData on a channel.  Currently the only implementation is
