@@ -207,9 +207,19 @@ loop:
 			}
 			if r.IsAdvertisement() {
 				if r.IsMfgAd() {
-					data <- beacon.ScanData{r.Data[20:], r.MacAddress().String(), r.RSSI(), &r.Data}
+					data <- beacon.ScanData{
+						Bytes:  r.Data[20:],
+						Device: r.MacAddress().String(),
+						RSSI:   r.RSSI(),
+						Raw:    &r.Data,
+					}
 				} else {
-					data <- beacon.ScanData{r.Data[24:], r.MacAddress().String(), r.RSSI(), &r.Data}
+					data <- beacon.ScanData{
+						Bytes:  r.Data[24:],
+						Device: r.MacAddress().String(),
+						RSSI:   r.RSSI(),
+						Raw:    &r.Data,
+					}
 				}
 			}
 		case <-done:
