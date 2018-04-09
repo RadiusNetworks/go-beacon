@@ -42,5 +42,9 @@ func (addr *MacAddress) UnmarshalJSON(text []byte) error {
 // format "00:11:22:33:44:55"
 func ParseMacAddress(s string) MacAddress {
 	bytes, _ := hex.DecodeString(strings.Replace(s, ":", "", -1))
-	return MacAddress{bytes[5], bytes[4], bytes[3], bytes[2], bytes[1], bytes[0]}
+	if len(bytes) < 6 {
+		return MacAddress{}
+	} else {
+		return MacAddress{bytes[5], bytes[4], bytes[3], bytes[2], bytes[1], bytes[0]}
+	}
 }
