@@ -4,7 +4,6 @@ import "strings"
 import "encoding/hex"
 import "strconv"
 import "bytes"
-import "github.com/RadiusNetworks/go-beacon/advertiser"
 
 var DefaultLayouts = map[string]string{
 	"altbeacon":     "m:2-3=beac,i:4-19,i:20-21,i:22-23,p:24-24,d:25-25",
@@ -147,7 +146,7 @@ func (p *Parser) Parse(data []byte) *Beacon {
 
 // GenerateAd generates the bytes of a beacon advertisement with the
 // given beacon.
-func (p *Parser) GenerateAd(b *Beacon) advertiser.Advertisement {
+func (p *Parser) GenerateAd(b *Beacon) []byte {
 	insertField := func(ad *[]byte, p fieldParams, field Field) {
 		l := len(field)
 		end := p.start + l
