@@ -1,9 +1,11 @@
 package beacon
 
-import "strings"
-import "encoding/hex"
-import "strconv"
-import "bytes"
+import (
+	"bytes"
+	"encoding/hex"
+	"strconv"
+	"strings"
+)
 
 var DefaultLayouts = map[string]string{
 	"altbeacon":     "m:2-3=beac,i:4-19,i:20-21,i:22-23,p:24-24,d:25-25",
@@ -40,6 +42,7 @@ type Parser struct {
 	idFields   []fieldParams
 	dataFields []fieldParams
 	powerField fieldParams
+	minLength  int
 }
 
 // NewParser initializes a new beacon parser with the given name and layout.
@@ -52,6 +55,7 @@ func NewParser(name string, layout string) *Parser {
 }
 
 func (p *Parser) parseLayout(layout string) {
+	p.minLength = 0
 	parts := strings.Split(layout, ",")
 	for _, part := range parts {
 		var params fieldParams
@@ -63,6 +67,9 @@ func (p *Parser) parseLayout(layout string) {
 		params.start, _ = strconv.Atoi(startEnd[0])
 		params.end, _ = strconv.Atoi(startEnd[1])
 		params.length = params.end - params.start + 1
+		if params.end+1 > p.minLength {
+			p.minLength = params.end + 1
+		}
 		if len(details) > 1 {
 			params.expected, _ = hex.DecodeString(details[1])
 		}
@@ -85,6 +92,10 @@ func (p *Parser) parseLayout(layout string) {
 
 // Matches returns true if the advertisement data matches this layout.
 func (p *Parser) Matches(data []byte) bool {
+	if len(data) < p.minLength {
+		return false
+	}
+
 	for _, params := range p.matchers {
 		if !bytes.Equal(data[params.start:params.end+1], params.expected) {
 			return false
