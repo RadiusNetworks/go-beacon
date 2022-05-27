@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"path/filepath"
+	"runtime"
+
 	"github.com/RadiusNetworks/go-beacon"
 	"github.com/RadiusNetworks/go-beacon/advertiser"
 	"github.com/tarm/serial"
-	"path/filepath"
-	"runtime"
 )
 
 // Device represents a USB connected BLE112 which can be used for
@@ -71,6 +72,18 @@ func NewDevice(port string) (*Device, error) {
 
 func (device *Device) String() string {
 	return fmt.Sprintf("BLE112 %v @ %v", device.MacAddress, device.Port)
+}
+
+func (d *Device) DeviceVersion() string {
+	return "N/A"
+}
+
+func (d *Device) DeviceAddress() string {
+	return d.MacAddress.String()
+}
+
+func (d *Device) DevicePath() string {
+	return d.Port
 }
 
 // Open opens the serial port connection to the BLE112
