@@ -62,7 +62,7 @@ func NewDevice(port string) (*Device, error) {
 	device.StopScan()
 	device.Close()
 
-	device.MacAddress = device.GetAddress()
+	device.GetAddress()
 
 	if device.MacAddress == nil {
 		return nil, errors.New("Non-BLE112 MAC address detected")
@@ -110,10 +110,11 @@ func (device *Device) SendCommand(msgClass byte, msg byte, data []byte) (*Respon
 	return device.Read()
 }
 
-// GetAddress retrieves the BLE112's mac address.
-func (device *Device) GetAddress() *beacon.MacAddress {
+// GetAddress retrieves the BLE112's mac address, stores it on the device struct,
+// and returns it (or returns an error, if one is encountered).
+func (device *Device) GetAddress() (beacon.MacAddress, error) {
 	if device.MacAddress != nil {
-		return device.MacAddress
+		return *device.MacAddress, nil
 	}
 	device.Open()
 	defer device.Close()
@@ -125,7 +126,7 @@ func (device *Device) GetAddress() *beacon.MacAddress {
 		// not sure why.
 		r, err = device.SendCommand(BG_MSG_CLASS_SYSTEM, BG_GET_ADDRESS, NULL_DATA)
 		if err != nil {
-			return nil
+			return beacon.MacAddress{}, err
 		}
 		retries--
 		if len(r.Data) >= 10 && bytes.Equal(r.Data[0:4], []byte{0, 6, 0, 2}) {
@@ -133,12 +134,16 @@ func (device *Device) GetAddress() *beacon.MacAddress {
 		}
 	}
 
-	if err != nil || len(r.Data) < 10 {
-		return nil
+	if err != nil {
+		return beacon.MacAddress{}, err
+	}
+	if len(r.Data) < 10 {
+		return beacon.MacAddress{}, fmt.Errorf("error getting address: not enough bytes")
 	}
 	var macAddress beacon.MacAddress
 	copy(macAddress[:], r.Data[4:10])
-	return &macAddress
+	device.MacAddress = &macAddress
+	return macAddress, nil
 }
 
 func (device *Device) StartAdvertising(data []byte) {
